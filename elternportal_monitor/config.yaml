@@ -1,0 +1,30 @@
+name: Elternportal Monitor
+version: "0.2.1"
+slug: elternportal_monitor
+description: Liest Elternbriefe, Stundenplan und Schulaufgaben und stellt sie Home Assistant per MQTT bereit.
+startup: application
+boot: auto
+init: false
+arch:
+  - amd64
+  - aarch64
+services:
+  - mqtt:need
+options:
+  portal_base_url: https://example.eltern-portal.org
+  username: ""
+  password: ""
+  child_id: 0
+  poll_interval_minutes: 60
+  include_letter_body: false
+  mqtt_discovery_prefix: homeassistant
+  mqtt_base_topic: elternportal
+schema:
+  portal_base_url: url
+  username: email
+  password: password
+  child_id: int(0,)
+  poll_interval_minutes: int(5,1440)
+  include_letter_body: bool
+  mqtt_discovery_prefix: str
+  mqtt_base_topic: str

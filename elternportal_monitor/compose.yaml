@@ -1,0 +1,12 @@
+services:
+  elternportal-monitor:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      MODE: daemon
+      STATE_FILE: /data/state.json
+    volumes:
+      - ./data:/data

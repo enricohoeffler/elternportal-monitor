@@ -1,0 +1,20 @@
+{
+  "name": "elternportal-monitor",
+  "version": "0.2.1",
+  "private": true,
+  "type": "module",
+  "description": "Read-only monitor for Eltern-Portal letters, timetable and exams",
+  "scripts": {
+    "start": "node --env-file=.env src/index.js",
+    "diagnose:login": "node --env-file=.env scripts/diagnose-login.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20.6"
+  },
+  "dependencies": {
+    "cheerio": "1.1.2",
+    "mqtt": "5.14.1",
+    "nodemailer": "10.0.10"
+  }
+}

@@ -1,0 +1,32 @@
+type: vertical-stack
+cards:
+  - type: entities
+    title: Schule
+    entities:
+      - entity: binary_sensor.elternportal_monitor
+        name: Portal-Abruf
+      - entity: sensor.elternportal_neue_elternbriefe
+        name: Neue Elternbriefe
+      - entity: sensor.elternportal_schulaufgaben
+        name: Schulaufgaben
+      - entity: sensor.elternportal_stundenplan
+        name: Stundenplan
+  - type: markdown
+    title: Nächste Schulaufgaben
+    content: >-
+      {% set items = state_attr('sensor.elternportal_schulaufgaben', 'items') or [] %}
+      {% for item in items %}
+      - **{{ item.date }}** — {{ item.title }}
+      {% else %}
+      Keine Schulaufgaben eingetragen.
+      {% endfor %}
+  - type: markdown
+    title: Stundenplan
+    content: >-
+      {% set days = state_attr('sensor.elternportal_stundenplan', 'days') or {} %}
+      {% for day, lessons in days.items() %}
+      **{{ day }}**  
+      {% for lesson in lessons %}{{ lesson.period }}. {{ lesson.subject }}{% if lesson.room %} ({{ lesson.room }}){% endif %}  
+      {% endfor %}
+      {% endfor %}
+

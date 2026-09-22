@@ -1,0 +1,24 @@
+configuration:
+  portal_base_url:
+    name: Portal-Adresse
+    description: Basisadresse des Elternportals der Schule.
+  username:
+    name: E-Mail-Adresse
+    description: Benutzername des Elternportals.
+  password:
+    name: Passwort
+    description: Passwort des Elternportals.
+  child_id:
+    name: Kind-ID
+    description: 0 für das einzige oder aktuell ausgewählte Kind.
+  poll_interval_minutes:
+    name: Abrufintervall
+    description: Zeit zwischen zwei Prüfungen in Minuten.
+  include_letter_body:
+    name: Brieftexte übertragen
+    description: Volltexte in Home Assistant übertragen; aus Datenschutzgründen standardmäßig aus.
+  mqtt_discovery_prefix:
+    name: MQTT-Discovery-Präfix
+  mqtt_base_topic:
+    name: MQTT-Basistopic
+
