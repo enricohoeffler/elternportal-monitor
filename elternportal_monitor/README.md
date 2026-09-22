@@ -1,6 +1,6 @@
 # Elternportal-Monitor
 
-Der Monitor liest **Elternbriefe, Stundenplan und Schulaufgaben** aus dem Elternportal. Er kann täglich eine E-Mail versenden, Home-Assistant-Sensoren aktualisieren und bei neuen Elternbriefen über einen Home-Assistant-`notify`-Dienst pushen.
+Der Monitor liest **Elternbriefe, Stundenplan, Schulaufgaben und weitere Termine** aus dem Elternportal. Er kann täglich eine E-Mail versenden, Home-Assistant-Sensoren aktualisieren und bei neuen Elternbriefen über einen Home-Assistant-`notify`-Dienst pushen.
 
 Wichtig: Die Anwendung lädt keine Elternbrief-Anhänge herunter und ruft keinen Bestätigungs-Endpunkt auf. Im Portal kann bereits der Download eines Elternbriefs dessen Empfang bestätigen.
 
@@ -52,6 +52,7 @@ Die empfohlene Home-Assistant-App verwendet MQTT Discovery. Der ältere REST-Mod
 
 - `sensor.elternportal_neue_elternbriefe`
 - `sensor.elternportal_schulaufgaben`
+- `sensor.elternportal_termine`
 - `sensor.elternportal_stundenplan`
 - `binary_sensor.elternportal_monitor`
 

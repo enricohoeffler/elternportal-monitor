@@ -136,6 +136,27 @@ export function parseExams(html) {
   return exams;
 }
 
+export function parseAppointments(payload, { now = Date.now() } = {}) {
+  const data = typeof payload === "string" ? JSON.parse(payload) : payload;
+  if (!data || Number(data.success) !== 1 || !Array.isArray(data.result)) return [];
+  return data.result
+    .map((item) => {
+      const startMs = Number.parseInt(item.start, 10);
+      const endMs = Number.parseInt(item.end, 10);
+      const titleHtml = String(item.title || item.title_short || "").replace(/<br\s*\/?>/gi, "\n");
+      const title = cleanText(cheerio.load(`<div>${titleHtml}</div>`)("div").text());
+      if (!title || !Number.isFinite(startMs) || !Number.isFinite(endMs)) return null;
+      return {
+        title,
+        start: new Date(startMs).toISOString(),
+        end: new Date(endMs).toISOString(),
+        allDay: Number.parseInt(item.bo_end, 10) === 1,
+      };
+    })
+    .filter((item) => item && Date.parse(item.start) >= now)
+    .sort((left, right) => Date.parse(left.start) - Date.parse(right.start));
+}
+
 export class ElternportalClient {
   constructor({ baseUrl, username, password, childId = 0, fetchImpl = fetch }) {
     this.baseUrl = baseUrl.replace(/\/$/, "");
@@ -219,15 +240,23 @@ export class ElternportalClient {
 
   async readAll({ includeLetterBody = false } = {}) {
     await this.login();
-    const [lettersHtml, timetableHtml, examsHtml] = await Promise.all([
+    const now = Date.now();
+    const appointmentParams = new URLSearchParams({
+      from: String(now),
+      to: String(now + 90 * 24 * 60 * 60 * 1_000),
+      utc_offset: String(new Date().getTimezoneOffset()),
+    });
+    const [lettersHtml, timetableHtml, examsHtml, appointmentsJson] = await Promise.all([
       this.getText("/aktuelles/elternbriefe"),
       this.getText("/service/stundenplan"),
       this.getText("/service/termine/liste/schulaufgaben"),
+      this.getText(`/api/ws_get_termine.php?${appointmentParams}`),
     ]);
     return {
       letters: parseParentLetters(lettersHtml, { includeBody: includeLetterBody }),
       timetable: parseTimetable(timetableHtml),
       exams: parseExams(examsHtml),
+      appointments: parseAppointments(appointmentsJson, { now }),
     };
   }
 }

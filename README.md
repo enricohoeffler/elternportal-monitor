@@ -1,6 +1,6 @@
 # Elternportal Monitor – Home-Assistant-App-Repository
 
-Dieses Repository stellt den **Elternportal Monitor** als Home-Assistant-App bereit. Die App liest Elternbriefe, Stundenplan und Schulaufgaben rein lesend aus dem Elternportal und veröffentlicht die Ergebnisse über MQTT Discovery in Home Assistant.
+Dieses Repository stellt den **Elternportal Monitor** als Home-Assistant-App bereit. Die App liest Elternbriefe, Stundenplan, Schulaufgaben und weitere Termine rein lesend aus dem Elternportal und veröffentlicht die Ergebnisse über MQTT Discovery in Home Assistant.
 
 ## Installation
 
@@ -19,4 +19,3 @@ Die Portal-Zugangsdaten werden ausschließlich in der geschützten App-Konfigura
 - Persistiert werden nur technische Briefschlüssel und Zeitstempel.
 
 Der ausführbare App-Code liegt unter [`elternportal_monitor/`](elternportal_monitor/).
-

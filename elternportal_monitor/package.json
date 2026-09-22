@@ -1,9 +1,9 @@
 {
   "name": "elternportal-monitor",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
-  "description": "Read-only monitor for Eltern-Portal letters, timetable and exams",
+  "description": "Read-only monitor for Eltern-Portal letters, timetable, exams and appointments",
   "scripts": {
     "start": "node --env-file=.env src/index.js",
     "diagnose:login": "node --env-file=.env scripts/diagnose-login.js",

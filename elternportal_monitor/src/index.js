@@ -54,7 +54,7 @@ async function runOnce(config, mqttPublisher) {
     lastSummaryDate: summarySent ? local.date : previous.lastSummaryDate,
     lastSuccessAt: checkedAt,
   });
-  console.log(`[${checkedAt}] Erfolgreich: ${data.letters.length} Briefe, ${newLetters.length} neu, ${data.exams.length} Schulaufgaben, ${data.timetable.length} Stundenplanzeilen.`);
+  console.log(`[${checkedAt}] Erfolgreich: ${data.letters.length} Briefe, ${newLetters.length} neu, ${data.exams.length} Schulaufgaben, ${data.appointments.length} Termine, ${data.timetable.length} Stundenplanzeilen.`);
 }
 
 async function main() {

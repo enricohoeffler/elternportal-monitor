@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isAuthenticatedPage, parseExams, parseParentLetters, parseTimetable } from "../src/elternportal-client.js";
+import { isAuthenticatedPage, parseAppointments, parseExams, parseParentLetters, parseTimetable } from "../src/elternportal-client.js";
 
 test("erkennt angemeldete Portalnavigation unabhängig vom Logout-Pfad", () => {
   assert.equal(isAuthenticatedPage(`<nav><a href="logout">Abmelden</a></nav>`), true);
@@ -57,4 +57,21 @@ test("findet den Stundenplan zwischen anderen Tabellen und berücksichtigt die l
 test("parst Schulaufgaben", () => {
   const html = `<div id="asam_content"><table><tr><td>17.11.2026</td><td>Schulaufgabe in Englisch</td></tr></table></div>`;
   assert.deepEqual(parseExams(html), [{ date: "17.11.2026", title: "Schulaufgabe in Englisch" }]);
+});
+
+test("parst zukünftige allgemeine Termine aus der Portal-API", () => {
+  const now = Date.parse("2026-09-22T00:00:00.000Z");
+  const payload = {
+    success: 1,
+    result: [
+      { title: "Elternabend<br>Mehrzweckraum", start: String(Date.parse("2026-10-01T17:00:00.000Z")), end: String(Date.parse("2026-10-01T19:00:00.000Z")), bo_end: "0" },
+      { title: "Vergangener Termin", start: String(Date.parse("2026-09-01T08:00:00.000Z")), end: String(Date.parse("2026-09-01T09:00:00.000Z")), bo_end: "0" },
+    ],
+  };
+  assert.deepEqual(parseAppointments(payload, { now }), [{
+    title: "Elternabend\nMehrzweckraum",
+    start: "2026-10-01T17:00:00.000Z",
+    end: "2026-10-01T19:00:00.000Z",
+    allDay: false,
+  }]);
 });

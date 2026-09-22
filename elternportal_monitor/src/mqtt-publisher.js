@@ -78,6 +78,7 @@ export class MqttPublisher {
       ["binary_sensor", "portal_connection", { name: "Portal-Verbindung", unique_id: "elternportal_portal_connection", value_template: "{{ 'ON' if value_json.portal_ok else 'OFF' }}", payload_on: "ON", payload_off: "OFF", device_class: "connectivity", json_attributes_topic: stateTopic }],
       ["sensor", "new_letters", { name: "Neue Elternbriefe", unique_id: "elternportal_new_letters", value_template: "{{ value_json.new_letters }}", icon: "mdi:email-newsletter", json_attributes_topic: stateTopic }],
       ["sensor", "exams", { name: "Schulaufgaben", unique_id: "elternportal_exams", value_template: "{{ value_json.exam_count }}", icon: "mdi:calendar-alert", json_attributes_topic: stateTopic }],
+      ["sensor", "appointments", { name: "Termine", unique_id: "elternportal_appointments", value_template: "{{ value_json.appointment_count }}", icon: "mdi:calendar-month", json_attributes_topic: stateTopic }],
       ["sensor", "timetable", { name: "Stundenplan", unique_id: "elternportal_timetable", value_template: "{{ 'verfügbar' if value_json.timetable_available else 'leer' }}", icon: "mdi:timetable", json_attributes_topic: stateTopic }],
       ["sensor", "last_update", { name: "Letzter Abruf", unique_id: "elternportal_last_update", value_template: "{{ value_json.last_checked }}", device_class: "timestamp", icon: "mdi:clock-check" }],
     ];
@@ -91,14 +92,19 @@ export class MqttPublisher {
 
   async publishSnapshot(data, newLetters, checkedAt) {
     if (!this.client) return;
-    const safeLetters = newLetters.slice(0, 20).map(({ title, date, status, hasAttachment }) => ({ title, date, status, hasAttachment }));
+    const safeLetters = data.letters.slice(0, 50).map(({ title, date, status, hasAttachment }) => ({ title, date, status, hasAttachment }));
+    const safeNewLetters = newLetters.slice(0, 20).map(({ title, date, status, hasAttachment }) => ({ title, date, status, hasAttachment }));
     const payload = {
       portal_ok: true,
       last_checked: checkedAt,
       new_letters: newLetters.length,
-      letters: safeLetters,
+      letter_count: data.letters.length,
+      parent_letters: safeLetters,
+      new_letter_items: safeNewLetters,
       exam_count: data.exams.length,
       exams: data.exams.slice(0, 30),
+      appointment_count: data.appointments.length,
+      appointments: data.appointments.slice(0, 50),
       timetable_available: data.timetable.length > 0,
       days: buildHomeAssistantDays(data.timetable),
     };
@@ -128,4 +134,3 @@ export class MqttPublisher {
     await new Promise((resolve) => this.client.end(false, resolve));
   }
 }
-

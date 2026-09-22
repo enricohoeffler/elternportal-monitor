@@ -1,6 +1,6 @@
 # Elternportal Monitor – Home-Assistant-App
 
-Die App liest Elternbriefe, Stundenplan und Schulaufgaben aus dem Elternportal und veröffentlicht daraus automatisch erkannte MQTT-Entitäten.
+Die App liest Elternbriefe, Stundenplan, Schulaufgaben und weitere Termine aus dem Elternportal und veröffentlicht daraus automatisch erkannte MQTT-Entitäten.
 
 ## Konfiguration
 
@@ -19,8 +19,8 @@ Die App lädt keine Elternbrief-Anhänge herunter und bestätigt keinen Empfang.
 - Portal-Verbindung
 - Neue Elternbriefe
 - Schulaufgaben
+- Termine
 - Stundenplan
 - Letzter Abruf
 
 Neue Briefe werden zusätzlich einmalig auf `elternportal/event/new_letter` veröffentlicht. Eine Home-Assistant-Automation kann dieses Topic für Push-Nachrichten verwenden.
-
