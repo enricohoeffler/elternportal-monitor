@@ -1,4 +1,35 @@
 import * as cheerio from "cheerio";
+import {
+  PortalAuthError,
+  PortalNetworkError,
+  PortalParserError,
+  PortalResponseError,
+  ReadOnlyPolicyError,
+} from "./errors.js";
+
+const ALLOWED_POST_PATHS = new Set([
+  "/includes/project/auth/login.php",
+  "/api/set_child.php",
+]);
+
+export function assertReadOnlyRequest(baseUrl, target, method = "GET") {
+  const portal = new URL(baseUrl);
+  const url = new URL(target, `${portal.toString().replace(/\/$/, "")}/`);
+  const normalizedMethod = method.toUpperCase();
+  const path = url.pathname.toLowerCase();
+
+  if (url.origin !== portal.origin) {
+    throw new ReadOnlyPolicyError("Read-only-Schutz: Anfrage außerhalb des konfigurierten Elternportals blockiert.");
+  }
+  if (normalizedMethod === "GET") {
+    if (path.includes("elternbrief_bestaetigen") || path.includes("get_file")) {
+      throw new ReadOnlyPolicyError("Read-only-Schutz: Bestätigungs- oder Dateiabruf blockiert.");
+    }
+    return url.toString();
+  }
+  if (normalizedMethod === "POST" && ALLOWED_POST_PATHS.has(path)) return url.toString();
+  throw new ReadOnlyPolicyError(`Read-only-Schutz: ${normalizedMethod}-Anfrage blockiert.`);
+}
 
 class CookieJar {
   constructor() {
@@ -137,8 +168,15 @@ export function parseExams(html) {
 }
 
 export function parseAppointments(payload, { now = Date.now() } = {}) {
-  const data = typeof payload === "string" ? JSON.parse(payload) : payload;
-  if (!data || Number(data.success) !== 1 || !Array.isArray(data.result)) return [];
+  let data;
+  try {
+    data = typeof payload === "string" ? JSON.parse(payload) : payload;
+  } catch (error) {
+    throw new PortalParserError("Terminantwort des Elternportals ist kein gültiges JSON.", { cause: error });
+  }
+  if (!data || Number(data.success) !== 1 || !Array.isArray(data.result)) {
+    throw new PortalParserError("Terminantwort des Elternportals hat eine unerwartete Struktur.");
+  }
   return data.result
     .map((item) => {
       const startMs = Number.parseInt(item.start, 10);
@@ -171,16 +209,23 @@ export class ElternportalClient {
     let url = new URL(path, `${this.baseUrl}/`).toString();
     let method = options.method || "GET";
     let body = options.body;
-    const baseHeaders = { "user-agent": "Elternportal-Monitor/0.1", ...(options.headers || {}) };
+    const baseHeaders = { "user-agent": "Elternportal-Monitor/0.2.3", ...(options.headers || {}) };
 
     for (let redirects = 0; redirects <= 5; redirects += 1) {
+      url = assertReadOnlyRequest(this.baseUrl, url, method);
       const cookie = this.jar.header();
-      const response = await this.fetchImpl(url, {
-        method,
-        body,
-        headers: { ...baseHeaders, ...(cookie ? { cookie } : {}) },
-        redirect: "manual",
-      });
+      let response;
+      try {
+        response = await this.fetchImpl(url, {
+          method,
+          body,
+          headers: { ...baseHeaders, ...(cookie ? { cookie } : {}) },
+          redirect: "manual",
+        });
+      } catch (error) {
+        if (error instanceof ReadOnlyPolicyError) throw error;
+        throw new PortalNetworkError("Netzwerkverbindung zum Elternportal fehlgeschlagen.", { cause: error });
+      }
       this.jar.absorb(response.headers);
       if (![301, 302, 303, 307, 308].includes(response.status)) return response;
       const location = response.headers.get("location");
@@ -191,12 +236,15 @@ export class ElternportalClient {
         body = undefined;
       }
     }
-    throw new Error("Zu viele Weiterleitungen beim Portalabruf.");
+    throw new PortalResponseError("Zu viele Weiterleitungen beim Portalabruf.");
   }
 
   async getText(path) {
     const response = await this.request(path);
-    if (!response.ok) throw new Error(`Portalabruf fehlgeschlagen (${response.status}).`);
+    if (response.status === 401 || response.status === 403) {
+      throw new PortalAuthError(`Elternportal-Sitzung abgelehnt (${response.status}).`, { retryable: true });
+    }
+    if (!response.ok) throw new PortalResponseError(`Portalabruf fehlgeschlagen (${response.status}).`);
     return response.text();
   }
 
@@ -204,7 +252,7 @@ export class ElternportalClient {
     const loginPage = await this.getText("/");
     const $ = cheerio.load(loginPage);
     const csrf = $("[name='csrf']").attr("value") || "";
-    if (!csrf) throw new Error("CSRF-Token der Loginseite wurde nicht gefunden.");
+    if (!csrf) throw new PortalParserError("CSRF-Token der Loginseite wurde nicht gefunden.");
 
     const form = new URLSearchParams({
       csrf,
@@ -217,24 +265,24 @@ export class ElternportalClient {
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: form.toString(),
     });
-    if (!loginResponse.ok) throw new Error(`Portal-Anmeldung fehlgeschlagen (${loginResponse.status}).`);
+    if (!loginResponse.ok) throw new PortalAuthError(`Portal-Anmeldung fehlgeschlagen (${loginResponse.status}).`);
     const loginHtml = await loginResponse.text();
     if (!isAuthenticatedPage(loginHtml)) {
-      throw new Error("Das Elternportal hat Benutzername oder Passwort abgelehnt.");
+      throw new PortalAuthError("Das Elternportal hat Benutzername oder Passwort abgelehnt.");
     }
 
     if (this.childId > 0) {
       const childResponse = await this.request(`/api/set_child.php?id=${encodeURIComponent(this.childId)}`, { method: "POST" });
-      if (!childResponse.ok) throw new Error(`Kind-Auswahl fehlgeschlagen (${childResponse.status}).`);
+      if (!childResponse.ok) throw new PortalAuthError(`Kind-Auswahl fehlgeschlagen (${childResponse.status}).`);
       const childResult = (await childResponse.text()).trim();
       if (childResult !== "1") {
-        throw new Error("Das Elternportal hat die konfigurierte ELTERNPORTAL_CHILD_ID abgelehnt.");
+        throw new PortalAuthError("Das Elternportal hat die konfigurierte ELTERNPORTAL_CHILD_ID abgelehnt.");
       }
     }
 
     const startPage = await this.getText("/start");
     if (!isAuthenticatedPage(startPage)) {
-      throw new Error("Die Elternportal-Sitzung konnte nach der Anmeldung nicht bestätigt werden.");
+      throw new PortalAuthError("Die Elternportal-Sitzung konnte nach der Anmeldung nicht bestätigt werden.", { retryable: true });
     }
   }
 
@@ -252,6 +300,14 @@ export class ElternportalClient {
       this.getText("/service/termine/liste/schulaufgaben"),
       this.getText(`/api/ws_get_termine.php?${appointmentParams}`),
     ]);
+    for (const [label, html] of [["Elternbriefe", lettersHtml], ["Stundenplan", timetableHtml], ["Schulaufgaben", examsHtml]]) {
+      if (!isAuthenticatedPage(html)) {
+        throw new PortalAuthError(`Elternportal-Sitzung beim Abruf von ${label} abgelaufen.`, { retryable: true });
+      }
+      if (!cheerio.load(html)("#asam_content").length) {
+        throw new PortalParserError(`Portalstruktur für ${label} wurde nicht erkannt.`);
+      }
+    }
     return {
       letters: parseParentLetters(lettersHtml, { includeBody: includeLetterBody }),
       timetable: parseTimetable(timetableHtml),

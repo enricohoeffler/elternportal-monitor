@@ -1,6 +1,6 @@
 {
   "name": "elternportal-monitor",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "type": "module",
   "description": "Read-only monitor for Eltern-Portal letters, timetable, exams and appointments",

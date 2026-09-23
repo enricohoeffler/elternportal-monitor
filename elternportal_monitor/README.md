@@ -4,6 +4,8 @@ Der Monitor liest **Elternbriefe, Stundenplan, Schulaufgaben und weitere Termine
 
 Wichtig: Die Anwendung lädt keine Elternbrief-Anhänge herunter und ruft keinen Bestätigungs-Endpunkt auf. Im Portal kann bereits der Download eines Elternbriefs dessen Empfang bestätigen.
 
+Eine zentrale Read-only-Policy erzwingt diese Grenze für jede HTTP-Anfrage: Erlaubt sind Lesezugriffe sowie ausschließlich die für Anmeldung und Kind-Auswahl notwendigen POST-Anfragen. Bestätigungs- und Datei-Endpunkte werden unabhängig vom aufrufenden Code blockiert.
+
 ## Schnellstart
 
 Voraussetzungen: Node.js 20.6+ oder Docker.
@@ -64,4 +66,6 @@ Eine einfache Dashboard-Karte liegt unter `home-assistant/dashboard.yaml`.
 
 - Das Portal stellt keine dokumentierte öffentliche API bereit; die HTML-Parser sind deshalb durch Tests abgesichert, können aber nach Portaländerungen angepasst werden müssen.
 - Fehler werden ohne Zugangsdaten und ohne Elternbrieftexte geloggt.
+- Bei einem Fehler bleibt der letzte gültige MQTT-Datenstand erhalten; ein separates Health-Topic meldet die Fehlerklasse.
+- Umfangreiche Attribute werden pro Sensor getrennt und nur als begrenzte Vorschau veröffentlicht.
 - Bei mehreren Kindern pro Konto sollte je Kind eine eigene Instanz mit eigenem `STATE_FILE` laufen.

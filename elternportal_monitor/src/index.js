@@ -4,6 +4,7 @@ import { buildReport } from "./report.js";
 import { sendEmail, updateHomeAssistant } from "./notifications.js";
 import { loadState, saveState } from "./state.js";
 import { MqttPublisher } from "./mqtt-publisher.js";
+import { classifyMonitorError, PortalAuthError } from "./errors.js";
 
 function zonedParts(date, timezone) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -22,14 +23,19 @@ function localDateAndHour(date, timezone) {
   return { date: `${parts.year}-${parts.month}-${parts.day}`, hour: Number.parseInt(parts.hour, 10) };
 }
 
-function safeError(error) {
-  return error instanceof Error ? error.message : String(error);
+async function readPortalData(config) {
+  try {
+    return await new ElternportalClient(config.portal).readAll({ includeLetterBody: config.includeLetterBody });
+  } catch (error) {
+    if (!(error instanceof PortalAuthError) || !error.retryable) throw error;
+    console.warn(`[${new Date().toISOString()}] Elternportal-Sitzung abgelaufen; einmalige Neuanmeldung wird versucht.`);
+    return new ElternportalClient(config.portal).readAll({ includeLetterBody: config.includeLetterBody });
+  }
 }
 
 async function runOnce(config, mqttPublisher) {
   const previous = await loadState(config.stateFile);
-  const client = new ElternportalClient(config.portal);
-  const data = await client.readAll({ includeLetterBody: config.includeLetterBody });
+  const data = await readPortalData(config);
   const known = new Set(previous.seenLetterKeys);
   const newLetters = previous.initialized ? data.letters.filter((letter) => !known.has(letter.key)) : [];
   const now = new Date();
@@ -71,8 +77,9 @@ async function main() {
     try {
       await runOnce(config, mqttPublisher);
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] Abruf fehlgeschlagen: ${safeError(error)}`);
-      await mqttPublisher.publishFailure(new Date().toISOString()).catch(() => {});
+      const failure = classifyMonitorError(error);
+      console.error(`[${new Date().toISOString()}] Abruf fehlgeschlagen [${failure.type}]: ${failure.message}`);
+      await mqttPublisher.publishFailure(new Date().toISOString(), failure).catch(() => {});
       if (config.mode === "once") process.exitCode = 1;
     }
     if (config.mode !== "daemon") break;

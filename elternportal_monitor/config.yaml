@@ -1,5 +1,5 @@
 name: Elternportal Monitor
-version: "0.2.2"
+version: "0.2.3"
 slug: elternportal_monitor
 description: Liest Elternbriefe, Stundenplan, Schulaufgaben und Termine und stellt sie Home Assistant per MQTT bereit.
 url: https://github.com/enricohoeffler/elternportal-monitor

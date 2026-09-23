@@ -13,6 +13,7 @@ Die App liest Elternbriefe, Stundenplan, Schulaufgaben und weitere Termine aus d
 - `mqtt_base_topic`: Normalerweise `elternportal`.
 
 Die App lädt keine Elternbrief-Anhänge herunter und bestätigt keinen Empfang.
+Eine zentrale Read-only-Sperre blockiert zusätzlich Bestätigungs-, Datei- und nicht ausdrücklich erlaubte Schreibzugriffe.
 
 ## Erzeugte Entitäten
 
@@ -24,3 +25,5 @@ Die App lädt keine Elternbrief-Anhänge herunter und bestätigt keinen Empfang.
 - Letzter Abruf
 
 Neue Briefe werden zusätzlich einmalig auf `elternportal/event/new_letter` veröffentlicht. Eine Home-Assistant-Automation kann dieses Topic für Push-Nachrichten verwenden.
+
+Bei Abruffehlern bleibt der letzte erfolgreiche Datenstand sichtbar. Die Entität **Portal-Verbindung** wechselt auf `Aus` und erhält im Attribut `error_type` eine der Klassen `authentication`, `network`, `portal`, `parser`, `policy` oder `unknown`. Die Listenattribute sind pro Sensor getrennt und auf kleine Vorschauen begrenzt.
